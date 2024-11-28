@@ -1,6 +1,6 @@
 {
   "name": "ai-dumper",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI tool to aggregate files into a single Markdown file",
   "main": "dist/index.js",
   "bin": {
