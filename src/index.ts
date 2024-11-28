@@ -89,45 +89,57 @@ async function aggregateFiles(inputDir: string, outputFile: string, useDefaultIg
       const fullPath = path.join(inputDir, file);
       const relativePath = path.relative(inputDir, fullPath);
 
-      if (userIncludePatterns.length === 0 || includeFilter.ignores(relativePath)) {
-        if (path.relative(inputDir, outputFile) === relativePath || (useDefaultIgnores && defaultIgnore.ignores(relativePath))) {
+      // First check if file should be included
+      const shouldInclude = userIncludePatterns.length === 0 || includeFilter.ignores(relativePath);
+
+      if (shouldInclude) {
+        // Skip output file
+        if (path.relative(inputDir, outputFile) === relativePath) {
           defaultIgnoredCount++;
-        } else if (customIgnore.ignores(relativePath)) {
+          continue;
+        }
+
+        // Skip ignored files only if not explicitly included
+        if (!includeFilter.ignores(relativePath) &&
+            ((useDefaultIgnores && defaultIgnore.ignores(relativePath)) ||
+                customIgnore.ignores(relativePath))) {
           customIgnoredCount++;
-        } else {
-          if (await isTextFile(fullPath) && !shouldTreatAsBinary(fullPath)) {
-            let content = await fs.readFile(fullPath, 'utf-8');
-            const extension = path.extname(file);
+          continue;
+        }
 
-            content = escapeTripleBackticks(content);
+        if (await isTextFile(fullPath) && !shouldTreatAsBinary(fullPath)) {
+          let content = await fs.readFile(fullPath, 'utf-8');
+          const extension = path.extname(file);
 
-            if (removeWhitespaceFlag && !WHITESPACE_DEPENDENT_EXTENSIONS.includes(extension)) {
-              content = removeWhitespace(content);
-            }
+          content = escapeTripleBackticks(content);
 
-            output += `# ${relativePath}\n\n`;
-            output += `\`\`\`${extension.slice(1)}\n`;
-            output += content;
-            output += '\n\`\`\`\n\n';
-
-            includedCount++;
-            includedFiles.push(relativePath);
-          } else {
-            const fileType = getFileType(fullPath);
-            output += `# ${relativePath}\n\n`;
-            if (fileType === 'SVG Image') {
-              output += `This is a file of the type: ${fileType}\n\n`;
-            } else {
-              output += `This is a binary file of the type: ${fileType}\n\n`;
-            }
-
-            binaryAndSvgFileCount++;
-            includedCount++;
-            includedFiles.push(relativePath);
+          if (removeWhitespaceFlag && !WHITESPACE_DEPENDENT_EXTENSIONS.includes(extension)) {
+            content = removeWhitespace(content);
           }
+
+          output += `# ${relativePath}\n\n`;
+          output += `\`\`\`${extension.slice(1)}\n`;
+          output += content;
+          output += '\n\`\`\`\n\n';
+
+          includedCount++;
+          includedFiles.push(relativePath);
+        } else {
+          const fileType = getFileType(fullPath);
+          output += `# ${relativePath}\n\n`;
+          if (fileType === 'SVG Image') {
+            output += `This is a file of the type: ${fileType}\n\n`;
+          } else {
+            output += `This is a binary file of the type: ${fileType}\n\n`;
+          }
+
+          binaryAndSvgFileCount++;
+          includedCount++;
+          includedFiles.push(relativePath);
         }
       }
     }
+
 
     await fs.mkdir(path.dirname(outputFile), { recursive: true });
     await fs.writeFile(outputFile, output, { flag: 'w' });
