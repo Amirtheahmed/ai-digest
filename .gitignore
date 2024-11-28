@@ -4,3 +4,5 @@ dist/
 *.log
 codebase.md
 custom_output.md
+.aidigestignore*
+.aidigestinclude*

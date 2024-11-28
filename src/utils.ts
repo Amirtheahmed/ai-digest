@@ -194,3 +194,16 @@ export function getFileType(filePath: string): string {
 export function shouldTreatAsBinary(filePath: string): boolean {
   return filePath.toLowerCase().endsWith('.svg') || getFileType(filePath) !== 'Binary';
 }
+
+export function createIncludeFilter(includePatterns: string[], includeFile: string): Ignore {
+  const ig = require("ignore")().add(includePatterns);
+  if (includePatterns.length > 0) {
+    console.log(formatLog(`Include patterns from ${includeFile}:`, '📋'));
+    includePatterns.forEach((pattern) => {
+      console.log(formatLog(`  - ${pattern}`, ''));
+    });
+  } else {
+    console.log(formatLog("No include patterns found - including all files.", '📋'));
+  }
+  return ig;
+}

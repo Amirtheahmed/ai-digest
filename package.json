@@ -1,10 +1,10 @@
 {
-  "name": "ai-digest",
-  "version": "1.0.7",
+  "name": "ai-dumper",
+  "version": "1.0.0",
   "description": "CLI tool to aggregate files into a single Markdown file",
   "main": "dist/index.js",
   "bin": {
-    "ai-digest": "./dist/index.js"
+    "ai-dumper": "./dist/index.js"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -20,7 +20,7 @@
     "aggregate",
     "markdown"
   ],
-  "author": "Stanislav Khromov",
+  "author": "Amir Ahmed | Originally by Stanislav Khromov",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.12",
@@ -37,12 +37,12 @@
     "isbinaryfile": "^5.0.2",
     "js-tiktoken": "^1.0.12"
   },
-  "homepage": "https://github.com/khromov/ai-digest#readme",
+  "homepage": "https://github.com/Amirtheahmed/ai-digest#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/khromov/ai-digest.git"
+    "url": "https://github.com/Amirtheahmed/ai-digest.git"
   },
   "bugs": {
-    "url": "https://github.com/khromov/ai-digest/issues"
+    "url": "https://github.com/Amirtheahmed/ai-digest/issues"
   }
 }

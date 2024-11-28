@@ -1,5 +1,7 @@
 # ai-digest
 
+This is a modified version of [Original Tool](https://github.com/khromov/ai-digest).
+
 A CLI tool to aggregate your codebase into a single Markdown file for use with Claude Projects or custom ChatGPTs.
 
 ## Features
@@ -79,6 +81,25 @@ ai-digest supports custom ignore patterns using a `.aidigestignore` file in the 
 
 Use the `--show-output-files` flag to see which files are being included, making it easier to identify candidates for exclusion.
 
+## Include Patterns
+
+ai-digest supports specifying which files to include using a `.aidigestinclude` file. This works similarly to `.aidigestignore` but defines which files should be included rather than excluded.
+
+- If `.aidigestinclude` exists, only files matching its patterns are processed
+- If empty or missing, all files are processed (subject to ignore patterns)
+- Include patterns take precedence over ignore patterns
+
+Example `.aidigestinclude`:
+```
+src/**/*.ts
+README.md
+docs/*
+```
+
+Use `--include-file` to specify a custom include file:
+```bash
+npx ai-digest --include-file custom.include
+```
 
 ## Whitespace Removal
 

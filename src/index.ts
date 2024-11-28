@@ -15,7 +15,7 @@ import {
   formatLog,
   isTextFile,
   getFileType,
-  shouldTreatAsBinary
+  shouldTreatAsBinary, createIncludeFilter
 } from './utils';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
@@ -46,11 +46,14 @@ function naturalSort(a: string, b: string): number {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 }
 
-async function aggregateFiles(inputDir: string, outputFile: string, useDefaultIgnores: boolean, removeWhitespaceFlag: boolean, showOutputFiles: boolean, ignoreFile: string): Promise<void> {
+async function aggregateFiles(inputDir: string, outputFile: string, useDefaultIgnores: boolean, removeWhitespaceFlag: boolean, showOutputFiles: boolean, ignoreFile: string, includeFile: string): Promise<void> {
   try {
     const userIgnorePatterns = await readIgnoreFile(inputDir, ignoreFile);
+    const userIncludePatterns = await readIgnoreFile(inputDir, includeFile);
     const defaultIgnore = useDefaultIgnores ? ignore().add(DEFAULT_IGNORES) : ignore();
     const customIgnore = createIgnoreFilter(userIgnorePatterns, ignoreFile);
+    const includeFilter = createIncludeFilter(userIncludePatterns, includeFile);
+
 
     if (useDefaultIgnores) {
       console.log(formatLog('Using default ignore patterns.', '🚫'));
@@ -85,40 +88,43 @@ async function aggregateFiles(inputDir: string, outputFile: string, useDefaultIg
     for (const file of sortedFiles) {
       const fullPath = path.join(inputDir, file);
       const relativePath = path.relative(inputDir, fullPath);
-      if (path.relative(inputDir, outputFile) === relativePath || (useDefaultIgnores && defaultIgnore.ignores(relativePath))) {
-        defaultIgnoredCount++;
-      } else if (customIgnore.ignores(relativePath)) {
-        customIgnoredCount++;
-      } else {
-        if (await isTextFile(fullPath) && !shouldTreatAsBinary(fullPath)) {
-          let content = await fs.readFile(fullPath, 'utf-8');
-          const extension = path.extname(file);
-          
-          content = escapeTripleBackticks(content);
-          
-          if (removeWhitespaceFlag && !WHITESPACE_DEPENDENT_EXTENSIONS.includes(extension)) {
-            content = removeWhitespace(content);
-          }
-          
-          output += `# ${relativePath}\n\n`;
-          output += `\`\`\`${extension.slice(1)}\n`;
-          output += content;
-          output += '\n\`\`\`\n\n';
 
-          includedCount++;
-          includedFiles.push(relativePath);
+      if (userIncludePatterns.length === 0 || includeFilter.ignores(relativePath)) {
+        if (path.relative(inputDir, outputFile) === relativePath || (useDefaultIgnores && defaultIgnore.ignores(relativePath))) {
+          defaultIgnoredCount++;
+        } else if (customIgnore.ignores(relativePath)) {
+          customIgnoredCount++;
         } else {
-          const fileType = getFileType(fullPath);
-          output += `# ${relativePath}\n\n`;
-          if (fileType === 'SVG Image') {
-            output += `This is a file of the type: ${fileType}\n\n`;
-          } else {
-            output += `This is a binary file of the type: ${fileType}\n\n`;
-          }
+          if (await isTextFile(fullPath) && !shouldTreatAsBinary(fullPath)) {
+            let content = await fs.readFile(fullPath, 'utf-8');
+            const extension = path.extname(file);
 
-          binaryAndSvgFileCount++;
-          includedCount++;
-          includedFiles.push(relativePath);
+            content = escapeTripleBackticks(content);
+
+            if (removeWhitespaceFlag && !WHITESPACE_DEPENDENT_EXTENSIONS.includes(extension)) {
+              content = removeWhitespace(content);
+            }
+
+            output += `# ${relativePath}\n\n`;
+            output += `\`\`\`${extension.slice(1)}\n`;
+            output += content;
+            output += '\n\`\`\`\n\n';
+
+            includedCount++;
+            includedFiles.push(relativePath);
+          } else {
+            const fileType = getFileType(fullPath);
+            output += `# ${relativePath}\n\n`;
+            if (fileType === 'SVG Image') {
+              output += `This is a file of the type: ${fileType}\n\n`;
+            } else {
+              output += `This is a binary file of the type: ${fileType}\n\n`;
+            }
+
+            binaryAndSvgFileCount++;
+            includedCount++;
+            includedFiles.push(relativePath);
+          }
         }
       }
     }
@@ -169,6 +175,7 @@ program
   .version('1.0.0')
   .description('Aggregate files into a single Markdown file')
   .option('-i, --input <directory>', 'Input directory', process.cwd())
+  .option('--include-file <file>', 'Custom include file name', '.aidigestinclude')
   .option('-o, --output <file>', 'Output file name', 'codebase.md')
   .option('--no-default-ignores', 'Disable default ignore patterns')
   .option('--whitespace-removal', 'Enable whitespace removal')
@@ -176,8 +183,18 @@ program
   .option('--ignore-file <file>', 'Custom ignore file name', '.aidigestignore')
   .action(async (options) => {
     const inputDir = path.resolve(options.input);
-    const outputFile = path.isAbsolute(options.output) ? options.output : path.join(process.cwd(), options.output);
-    await aggregateFiles(inputDir, outputFile, options.defaultIgnores, options.whitespaceRemoval, options.showOutputFiles, options.ignoreFile);
+    const outputFile = path.isAbsolute(options.output)
+        ? options.output
+        : path.join(process.cwd(), options.output);
+    await aggregateFiles(
+        inputDir,
+        outputFile,
+        options.defaultIgnores,
+        options.whitespaceRemoval,
+        options.showOutputFiles,
+        options.ignoreFile,
+        options.includeFile
+    );
   });
 
 program.parse(process.argv);

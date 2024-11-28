@@ -203,4 +203,41 @@ describe("AI Digest CLI", () => {
       await fs.rm(tempDir, { recursive: true, force: true });
     }
   }, 15000);
+
+  it("should respect custom include file", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ai-digest-include-test-'));
+
+    try {
+      await fs.writeFile(path.join(tempDir, 'include.txt'), 'Include this');
+      await fs.writeFile(path.join(tempDir, 'exclude.txt'), 'Exclude this');
+      await fs.writeFile(path.join(tempDir, '.aidigestinclude'), 'include.txt');
+
+      const { stdout } = await runCLI(`--input ${tempDir} --show-output-files`);
+
+      expect(stdout).toContain('include.txt');
+      expect(stdout).not.toContain('exclude.txt');
+      expect(stdout).toContain('Include patterns from .aidigestinclude:');
+
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("should include all files when no include patterns", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ai-digest-include-empty-test-'));
+
+    try {
+      await fs.writeFile(path.join(tempDir, 'test1.txt'), 'Test 1');
+      await fs.writeFile(path.join(tempDir, 'test2.txt'), 'Test 2');
+
+      const { stdout } = await runCLI(`--input ${tempDir} --show-output-files`);
+
+      expect(stdout).toContain('test1.txt');
+      expect(stdout).toContain('test2.txt');
+      expect(stdout).toContain('No include patterns found - including all files.');
+
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
 });
